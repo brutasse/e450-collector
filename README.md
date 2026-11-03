@@ -5,6 +5,49 @@ E450) from the W6832 M-Bus dongle and exposes Prometheus metrics, including
 a cumulative energy counter. Runs as a plain binary on the machine that has
 the dongle.
 
+## Installing
+
+Download the release binary for your architecture, then install it:
+
+```sh
+curl -fsSLo /tmp/e450-collector \
+  https://github.com/brutasse/e450-collector/releases/download/v0.1.0/e450-collector_0.1.0_linux_amd64
+install -m 0755 /tmp/e450-collector /usr/local/bin/
+```
+
+Asset names follow the version tag (`e450-collector_<ver>_linux_arm64` for
+arm64), so check the release page when a new version lands.
+
+## Systemd
+
+Write this to `/etc/systemd/system/e450-collector.service`:
+
+```ini
+[Unit]
+Description=e450-collector, Prometheus metrics for the Landis+Gyr E450 meter
+
+[Service]
+ExecStart=/usr/local/bin/e450-collector
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then:
+
+```sh
+systemctl daemon-reload
+systemctl enable --now e450-collector
+systemctl status e450-collector
+journalctl -u e450-collector -f
+curl -si localhost:9398/healthz    # expect HTTP/1.1 200 OK
+```
+
+The unit runs as root, which can read the dongle; to run it as a regular
+user instead, add `User=e450` and `SupplementaryGroups=dialout` to
+`[Service]` so it can open `/dev/ttyUSB0`.
+
 ## Building
 
 ```sh
