@@ -79,7 +79,7 @@ bridge (`067b:23a3`). The meter pushes a frame every ~5 s.
 | `main_power_w{phase=L1\|L2\|L3\|L123}` | estimated active power (W), per phase and total |
 | `main_energy_wh_total{phase=L1\|L2\|L3\|L123}` | cumulative active energy (Wh), per phase and total |
 
-The push carries no power value, only currents (1 mA resolution) and
+The push carries no power value, only currents (10 mA resolution) and
 voltages (1 V), so `main_power_w` is U x I per phase, without power factor.
 
 `main_energy_wh_total` integrates the push values: each push adds the phase

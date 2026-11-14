@@ -14,8 +14,8 @@ import (
 // e450_push_358.bin from the 358-byte frame layout, e450_push_376.bin from
 // the 376-byte one. The frame head sits at offset 0.
 var (
-	head358 = head{currentMA: [3]uint16{135, 62, 91}, voltageV: [3]uint16{238, 238, 238}}
-	head376 = head{currentMA: [3]uint16{70, 45, 757}, voltageV: [3]uint16{235, 234, 234}}
+	head358 = head{current10MA: [3]uint16{135, 62, 91}, voltageV: [3]uint16{238, 238, 238}}
+	head376 = head{current10MA: [3]uint16{70, 45, 757}, voltageV: [3]uint16{235, 234, 234}}
 )
 
 func readE450Fixture(t *testing.T, name string) []byte {
@@ -96,10 +96,10 @@ func TestProcessResync(t *testing.T) {
 	if i := findPushHead(e.buf); i >= 0 {
 		t.Fatalf("head left in buffer at %d", i)
 	}
-	assertGauge(t, mainCurrentA.WithLabelValues("L1"), float64(70)/1000)
-	assertGauge(t, mainCurrentA.WithLabelValues("L2"), float64(45)/1000)
-	assertGauge(t, mainCurrentA.WithLabelValues("L3"), float64(757)/1000)
-	assertGauge(t, mainCurrentA.WithLabelValues("L123"), float64(70+45+757)/1000)
+	assertGauge(t, mainCurrentA.WithLabelValues("L1"), float64(70)/100)
+	assertGauge(t, mainCurrentA.WithLabelValues("L2"), float64(45)/100)
+	assertGauge(t, mainCurrentA.WithLabelValues("L3"), float64(757)/100)
+	assertGauge(t, mainCurrentA.WithLabelValues("L123"), float64(70+45+757)/100)
 	assertGauge(t, mainVoltageV.WithLabelValues("L1"), 235)
 	assertGauge(t, mainVoltageV.WithLabelValues("L3"), 234)
 	assertGauge(t, mainPowerW.WithLabelValues("L123"), power(head376))
@@ -119,8 +119,8 @@ func TestProcessChunked(t *testing.T) {
 		e.buf = append(e.buf, buf[i:end]...)
 		e.process()
 	}
-	assertGauge(t, mainCurrentA.WithLabelValues("L1"), float64(135)/1000)
-	assertGauge(t, mainCurrentA.WithLabelValues("L123"), float64(135+62+91)/1000)
+	assertGauge(t, mainCurrentA.WithLabelValues("L1"), float64(135)/100)
+	assertGauge(t, mainCurrentA.WithLabelValues("L123"), float64(135+62+91)/100)
 	assertGauge(t, mainVoltageV.WithLabelValues("L1"), 238)
 	assertGauge(t, mainPowerW.WithLabelValues("L123"), power(head358))
 }
@@ -171,7 +171,7 @@ func TestStreamCapture(t *testing.T) {
 }
 
 func TestEnergyDeltas(t *testing.T) {
-	h := head{currentMA: [3]uint16{1000, 2000, 0}, voltageV: [3]uint16{230, 240, 250}}
+	h := head{current10MA: [3]uint16{100, 200, 0}, voltageV: [3]uint16{230, 240, 250}}
 	// 1 A x 230 V and 2 A x 240 V over 5 s.
 	d := energyDeltas(h, 5*time.Second)
 	want0 := 1.0 * 230 * 5 / 3600
@@ -208,7 +208,7 @@ func TestUpdateUpDecay(t *testing.T) {
 func power(h head) float64 {
 	var w float64
 	for j := 0; j < 3; j++ {
-		w += float64(h.currentMA[j]) / 1000 * float64(h.voltageV[j])
+		w += float64(h.current10MA[j]) / 100 * float64(h.voltageV[j])
 	}
 	return w
 }

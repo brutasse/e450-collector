@@ -27,11 +27,11 @@ const (
 var e450Phases = []string{"L1", "L2", "L3", "L123"}
 
 // head is the 18-byte head of a CII push frame: the first three values are
-// the per-phase currents in mA, the last three the phase-to-neutral
-// voltages in V, each big-endian behind a 0x12 tag.
+// the per-phase currents, in units of 10 mA, the last three the phase-to-
+// neutral voltages in V, each big-endian behind a 0x12 tag.
 type head struct {
-	currentMA [3]uint16
-	voltageV  [3]uint16
+	current10MA [3]uint16
+	voltageV    [3]uint16
 }
 
 var (
@@ -89,7 +89,7 @@ func validHead(b []byte) bool {
 func parseHead(b []byte) head {
 	var h head
 	for j := 0; j < 3; j++ {
-		h.currentMA[j] = uint16(b[3*j+1])<<8 | uint16(b[3*j+2])
+		h.current10MA[j] = uint16(b[3*j+1])<<8 | uint16(b[3*j+2])
 		h.voltageV[j] = uint16(b[3*j+10])<<8 | uint16(b[3*j+11])
 	}
 	return h
@@ -111,7 +111,7 @@ func findPushHead(buf []byte) int {
 func energyDeltas(h head, dt time.Duration) [4]float64 {
 	var d [4]float64
 	for j := 0; j < 3; j++ {
-		d[j] = float64(h.currentMA[j]) / 1000 * float64(h.voltageV[j]) * dt.Seconds() / 3600
+		d[j] = float64(h.current10MA[j]) / 100 * float64(h.voltageV[j]) * dt.Seconds() / 3600
 		d[3] += d[j]
 	}
 	return d
@@ -227,14 +227,14 @@ func (e *E450) applyPush(h head) {
 	var totalW float64
 	for j := 0; j < 3; j++ {
 		phase := e450Phases[j]
-		w := float64(h.currentMA[j]) / 1000 * float64(h.voltageV[j])
+		w := float64(h.current10MA[j]) / 100 * float64(h.voltageV[j])
 		totalW += w
-		mainCurrentA.WithLabelValues(phase).Set(float64(h.currentMA[j]) / 1000)
+		mainCurrentA.WithLabelValues(phase).Set(float64(h.current10MA[j]) / 100)
 		mainVoltageV.WithLabelValues(phase).Set(float64(h.voltageV[j]))
 		mainPowerW.WithLabelValues(phase).Set(w)
 		mainEnergyWhTotal.WithLabelValues(phase).Add(deltas[j])
 	}
-	mainCurrentA.WithLabelValues(e450Phases[3]).Set(float64(h.currentMA[0]+h.currentMA[1]+h.currentMA[2]) / 1000)
+	mainCurrentA.WithLabelValues(e450Phases[3]).Set(float64(h.current10MA[0]+h.current10MA[1]+h.current10MA[2]) / 100)
 	mainPowerW.WithLabelValues(e450Phases[3]).Set(totalW)
 	mainEnergyWhTotal.WithLabelValues(e450Phases[3]).Add(deltas[3])
 	mainUp.Set(1)

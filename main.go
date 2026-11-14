@@ -27,10 +27,10 @@ func main() {
 		e.onPush = func(h head, frame []byte) {
 			var total float64
 			for j := 0; j < 3; j++ {
-				total += float64(h.currentMA[j]) / 1000 * float64(h.voltageV[j])
+				total += float64(h.current10MA[j]) / 100 * float64(h.voltageV[j])
 			}
-			fmt.Printf("e450: I=%d/%d/%d mA  U=%d/%d/%d V  power=%.1f W\n",
-				h.currentMA[0], h.currentMA[1], h.currentMA[2],
+			fmt.Printf("e450: I=%.3f/%.3f/%.3f A  U=%d/%d/%d V  power=%.1f W\n",
+				float64(h.current10MA[0])/100, float64(h.current10MA[1])/100, float64(h.current10MA[2])/100,
 				h.voltageV[0], h.voltageV[1], h.voltageV[2], total)
 			if *hex {
 				fmt.Printf("    %x\n", frame)
